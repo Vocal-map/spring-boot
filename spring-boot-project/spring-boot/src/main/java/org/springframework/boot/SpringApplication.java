@@ -310,27 +310,32 @@ public class SpringApplication {
 	 * @return a running {@link ApplicationContext}
 	 */
 	public ConfigurableApplicationContext run(String... args) {
-		// TODO startup的功能是什么
+		// startup 本质上是一个计时器，当前生成的类为StandardStartup
 		Startup startup = Startup.create();
 		if (this.properties.isRegisterShutdownHook()) {
 			SpringApplication.shutdownHook.enableShutdownHookAddition();
 		}
 		// 创建BootstrapContext
-		// TODO BootstrapContext的作用是什么
 		DefaultBootstrapContext bootstrapContext = createBootstrapContext();
 		ConfigurableApplicationContext context = null;
 		// 配置是否有UI
 		configureHeadlessProperty();
-		// TODO 根据参数获取RunListeners
+		// 创建RunListeners，参数最终用于`this.constructor.newInstance(args);`
+		// 运行监听器主要是用于监听SpringApplication的运行过程
 		SpringApplicationRunListeners listeners = getRunListeners(args);
+		// 触发启动中事件
 		listeners.starting(bootstrapContext, this.mainApplicationClass);
 		try {
+			// 将args封装参数applicationArguments
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
+			// 准备环境
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, bootstrapContext, applicationArguments);
+			// Banner就是启动时打印的logo，返回 打印完对象的banner
+			// 优先级：spring.banner.location > banner.txt > fallbackBanner > defaultBanner
 			Banner printedBanner = printBanner(environment);
-			// 创建应用上下文
+			// applicationContextFactory根据应用类型创建不同的ApplicationContext
 			context = createApplicationContext();
-			context.setApplicationStartup(this.applicationStartup);
+			context.setApplicationStartup(this.applicationStartup);  // 度量各个阶段的性能
 			// 预处理上下文
 			prepareContext(bootstrapContext, context, environment, listeners, applicationArguments, printedBanner);
 			// 刷新上下文
@@ -341,6 +346,7 @@ public class SpringApplication {
 			if (this.properties.isLogStartupInfo()) {
 				new StartupInfoLogger(this.mainApplicationClass, environment).logStarted(getApplicationLog(), startup);
 			}
+			// 触发启动完成事件
 			listeners.started(context, startup.timeTakenToStarted());
 			callRunners(context, applicationArguments);
 		}
@@ -358,32 +364,50 @@ public class SpringApplication {
 		return context;
 	}
 
+	/**
+	 * 创建BootstrapContext，并使用所有的BootstrapRegistryInitializer初始化
+	 * @return
+	 */
 	private DefaultBootstrapContext createBootstrapContext() {
 		DefaultBootstrapContext bootstrapContext = new DefaultBootstrapContext();
-		this.bootstrapRegistryInitializers.forEach((initializer) -> initializer.initialize(bootstrapContext));
+		this.bootstrapRegistryInitializers
+				.forEach((initializer) ->
+						initializer.initialize(bootstrapContext));
 		return bootstrapContext;
 	}
 
 	private ConfigurableEnvironment prepareEnvironment(SpringApplicationRunListeners listeners,
 			DefaultBootstrapContext bootstrapContext, ApplicationArguments applicationArguments) {
 		// Create and configure the environment
+		// 根据web应用类型创建不同的Environment
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
+		// 根据args配置Environment
 		configureEnvironment(environment, applicationArguments.getSourceArgs());
 		ConfigurationPropertySources.attach(environment);
+		// 监听器触发环境准备好事件
 		listeners.environmentPrepared(bootstrapContext, environment);
+		// 将环境中的applicationInfo信息放在环境信息的最后
 		ApplicationInfoPropertySource.moveToEnd(environment);
+		// 将环境中的defaultProperties放在环境信息的最后
 		DefaultPropertiesPropertySource.moveToEnd(environment);
 		Assert.state(!environment.containsProperty("spring.main.environment-prefix"),
 				"Environment prefix cannot be set via properties.");
+		// 将environment绑定到ApplicationProperties
 		bindToSpringApplication(environment);
 		if (!this.isCustomEnvironment) {
 			EnvironmentConverter environmentConverter = new EnvironmentConverter(getClassLoader());
+			// 如果有必要, 将environment转换为deduceEnvironmentClass()类型
 			environment = environmentConverter.convertEnvironmentIfNecessary(environment, deduceEnvironmentClass());
 		}
+		// 将configurationProperties绑定到environment, 放在environment的最前面
 		ConfigurationPropertySources.attach(environment);
 		return environment;
 	}
 
+	/**
+	 * 获取环境类型，环境类型与web应用类型有关
+	 * @return
+	 */
 	private Class<? extends ConfigurableEnvironment> deduceEnvironmentClass() {
 		WebApplicationType webApplicationType = this.properties.getWebApplicationType();
 		Class<? extends ConfigurableEnvironment> environmentType = this.applicationContextFactory
@@ -399,12 +423,13 @@ public class SpringApplication {
 			ApplicationArguments applicationArguments, Banner printedBanner) {
 		// 应用上下文设置环境
 		context.setEnvironment(environment);
-		// TODO 后处理应用上下文
+		// 后处理应用上下文
 		postProcessApplicationContext(context);
 		// TODO 配置AOT生成的初始化器
 		addAotGeneratedInitializerIfNecessary(this.initializers);
 		// TODO 应用初始化器
 		applyInitializers(context);
+		// 监听器发布上下文准备好事件
 		listeners.contextPrepared(context);
 		// 发布事件，告知已经关闭的bootstrapContext和启用的applicationContext
 		bootstrapContext.close(context);
@@ -415,8 +440,10 @@ public class SpringApplication {
 		}
 		// Add boot specific singleton beans
 		ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
+		// 将参数注册为进BeanFactory
 		beanFactory.registerSingleton("springApplicationArguments", applicationArguments);
 		if (printedBanner != null) {
+			// 将打印的banner注册进BeanFactory
 			beanFactory.registerSingleton("springBootBanner", printedBanner);
 		}
 		if (beanFactory instanceof AbstractAutowireCapableBeanFactory autowireCapableBeanFactory) {
@@ -438,6 +465,7 @@ public class SpringApplication {
 			Assert.notEmpty(sources, "Sources must not be empty");
 			load(context, sources.toArray(new Object[0]));
 		}
+		// 监听器发布上下文加载完成事件
 		listeners.contextLoaded(context);
 	}
 
@@ -458,6 +486,7 @@ public class SpringApplication {
 	}
 
 	private void refreshContext(ConfigurableApplicationContext context) {
+		// 如果注册了
 		if (this.properties.isRegisterShutdownHook()) {
 			shutdownHook.registerApplicationContext(context);
 		}
@@ -576,6 +605,7 @@ public class SpringApplication {
 	}
 
 	/**
+	 * 将environment绑定到{@link ApplicationProperties}。
 	 * Bind the environment to the {@link ApplicationProperties}.
 	 * @param environment the environment to bind
 	 */
@@ -618,6 +648,9 @@ public class SpringApplication {
 	}
 
 	/**
+	 * 后处理process, 如果beanNameGenerator不为null，则将其注册为单例bean，注册进context
+	 * 如果resourceLoader不为null，则将它的加载器设置为resourceLoader或resourceLoader的加载器
+	 * 如果addConversionService为true，则配置统一的转换服务
 	 * Apply any relevant post-processing to the {@link ApplicationContext}. Subclasses
 	 * can apply additional processing as required.
 	 * @param context the application context
@@ -1767,6 +1800,9 @@ public class SpringApplication {
 
 		protected abstract String action();
 
+		/**
+		 * 计算从开始到现在的时间差
+		 */
 		final Duration started() {
 			long now = System.currentTimeMillis();
 			this.timeTakenToStarted = Duration.ofMillis(now - startTime());

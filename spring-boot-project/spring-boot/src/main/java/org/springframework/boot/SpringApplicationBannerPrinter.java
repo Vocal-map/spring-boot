@@ -77,13 +77,19 @@ class SpringApplicationBannerPrinter {
 		if (this.fallbackBanner != null) {
 			return this.fallbackBanner;
 		}
-		return DEFAULT_BANNER;
+		return DEFAULT_BANNER;  // 加载默认logo
 	}
 
+	/**
+	 * 先去读取environment中spring.banner.location指定的位置
+	 * 如果为空则读取resourceLoader下的banner.txt
+	 * @param environment
+	 * @return
+	 */
 	private Banner getTextBanner(Environment environment) {
 		String location = environment.getProperty(BANNER_LOCATION_PROPERTY, DEFAULT_BANNER_LOCATION);
 		Resource resource = this.resourceLoader.getResource(location);
-		try {
+		try { // 默认resource.exists() == false
 			if (resource.exists() && !resource.getURL().toExternalForm().contains("liquibase-core")) {
 				return new ResourceBanner(resource);
 			}
