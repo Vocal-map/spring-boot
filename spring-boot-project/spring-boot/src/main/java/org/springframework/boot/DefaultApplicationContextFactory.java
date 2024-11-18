@@ -46,6 +46,7 @@ class DefaultApplicationContextFactory implements ApplicationContextFactory {
 
 	@Override
 	public ConfigurableApplicationContext create(WebApplicationType webApplicationType) {
+		// TODO 如何实现的？
 		try {
 			return getFromSpringFactories(webApplicationType, ApplicationContextFactory::create,
 					this::createDefaultApplicationContext);

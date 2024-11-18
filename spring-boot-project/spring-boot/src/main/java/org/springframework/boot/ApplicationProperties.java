@@ -64,6 +64,7 @@ class ApplicationProperties {
 	private boolean logStartupInfo = true;
 
 	/**
+	 * 无论是web应用还是非web应用，都会注册一个关闭钩子
 	 * Whether the application should have a shutdown hook registered.
 	 */
 	private boolean registerShutdownHook = true;
@@ -133,6 +134,10 @@ class ApplicationProperties {
 		this.logStartupInfo = logStartupInfo;
 	}
 
+	/**
+	 * 默认为true
+	 * @return 是否注册关闭钩子
+	 */
 	boolean isRegisterShutdownHook() {
 		return this.registerShutdownHook;
 	}

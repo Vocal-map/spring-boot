@@ -252,6 +252,7 @@ public class SpringApplication {
 	 * @see #run(Class, String[])
 	 * @see #SpringApplication(ResourceLoader, Class...)
 	 * @see #setSources(Set)
+	 * 静态调用run()时触发的构造方法
 	 */
 	public SpringApplication(Class<?>... primarySources) {
 		this(null, primarySources);
@@ -269,14 +270,20 @@ public class SpringApplication {
 	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public SpringApplication(ResourceLoader resourceLoader, Class<?>... primarySources) {
+		// 由SpringBootApplication.run()调用时, resourceLoader为null, primarySources为主类
 		this.resourceLoader = resourceLoader;
 		Assert.notNull(primarySources, "PrimarySources must not be null");
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
+		// 获得web应用类型
 		this.properties.setWebApplicationType(WebApplicationType.deduceFromClasspath());
+		// 从META-INF/spring.factories中加载BootstrapRegistryInitializer实现类
 		this.bootstrapRegistryInitializers = new ArrayList<>(
 				getSpringFactoriesInstances(BootstrapRegistryInitializer.class));
+		// 加载所有的ApplicationContextInitializer实现类
 		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
+		// 加载所有的ApplicationListener实现类
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
+		// 寻找main方法所在的类
 		this.mainApplicationClass = deduceMainApplicationClass();
 	}
 
@@ -293,29 +300,42 @@ public class SpringApplication {
 	}
 
 	/**
+	 * 运行SpringApplication 创建并刷新一个新的{@link ApplicationContext}.
+	 * @param args 应用程序参数(通常从Java main方法传递)
+	 * @return 运行中的{@link ApplicationContext}
+	 * <p>
 	 * Run the Spring application, creating and refreshing a new
 	 * {@link ApplicationContext}.
 	 * @param args the application arguments (usually passed from a Java main method)
 	 * @return a running {@link ApplicationContext}
 	 */
 	public ConfigurableApplicationContext run(String... args) {
+		// TODO startup的功能是什么
 		Startup startup = Startup.create();
 		if (this.properties.isRegisterShutdownHook()) {
 			SpringApplication.shutdownHook.enableShutdownHookAddition();
 		}
+		// 创建BootstrapContext
+		// TODO BootstrapContext的作用是什么
 		DefaultBootstrapContext bootstrapContext = createBootstrapContext();
 		ConfigurableApplicationContext context = null;
+		// 配置是否有UI
 		configureHeadlessProperty();
+		// TODO 根据参数获取RunListeners
 		SpringApplicationRunListeners listeners = getRunListeners(args);
 		listeners.starting(bootstrapContext, this.mainApplicationClass);
 		try {
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, bootstrapContext, applicationArguments);
 			Banner printedBanner = printBanner(environment);
+			// 创建应用上下文
 			context = createApplicationContext();
 			context.setApplicationStartup(this.applicationStartup);
+			// 预处理上下文
 			prepareContext(bootstrapContext, context, environment, listeners, applicationArguments, printedBanner);
+			// 刷新上下文
 			refreshContext(context);
+			// 刷新后处理
 			afterRefresh(context, applicationArguments);
 			startup.started();
 			if (this.properties.isLogStartupInfo()) {
@@ -377,11 +397,16 @@ public class SpringApplication {
 	private void prepareContext(DefaultBootstrapContext bootstrapContext, ConfigurableApplicationContext context,
 			ConfigurableEnvironment environment, SpringApplicationRunListeners listeners,
 			ApplicationArguments applicationArguments, Banner printedBanner) {
+		// 应用上下文设置环境
 		context.setEnvironment(environment);
+		// TODO 后处理应用上下文
 		postProcessApplicationContext(context);
+		// TODO 配置AOT生成的初始化器
 		addAotGeneratedInitializerIfNecessary(this.initializers);
+		// TODO 应用初始化器
 		applyInitializers(context);
 		listeners.contextPrepared(context);
+		// 发布事件，告知已经关闭的bootstrapContext和启用的applicationContext
 		bootstrapContext.close(context);
 		if (this.properties.isLogStartupInfo()) {
 			logStartupInfo(context.getParent() == null);
@@ -439,6 +464,13 @@ public class SpringApplication {
 		refresh(context);
 	}
 
+	/**
+	 * 根据系统属性设置是否启用headless模式
+	 * headless是应用的一种配置模式。在服务器可能缺少显示设备、键盘、鼠标等外设的情况下使用这种模式。
+	 * 1. 如果应用不需要任何head，那么有无这个配置没有任何影响；
+	 * 2. 如果应用有弹出窗口之类的操作，那么在headless模式下这种操作会被阻止。
+	 * 默认情况下为 {@code System.setProperty(SYSTEM_PROPERTY_JAVA_AWT_HEADLESS, "true")}
+	 */
 	private void configureHeadlessProperty() {
 		System.setProperty(SYSTEM_PROPERTY_JAVA_AWT_HEADLESS,
 				System.getProperty(SYSTEM_PROPERTY_JAVA_AWT_HEADLESS, Boolean.toString(this.headless)));
@@ -458,6 +490,12 @@ public class SpringApplication {
 		return new SpringApplicationRunListeners(logger, listeners, this.applicationStartup);
 	}
 
+	/**
+	 * 通过classloader 从META-INF/spring.factories下加载类
+	 * @param type 要加载的类
+	 * @return 结果
+	 * @param <T> 加载的类的类型
+	 */
 	private <T> List<T> getSpringFactoriesInstances(Class<T> type) {
 		return getSpringFactoriesInstances(type, null);
 	}
@@ -550,6 +588,10 @@ public class SpringApplication {
 		}
 	}
 
+	/**
+	 * 打印启动logo
+	 * @param environment 当前运行环境
+	 */
 	private Banner printBanner(ConfigurableEnvironment environment) {
 		if (this.properties.getBannerMode(environment) == Banner.Mode.OFF) {
 			return null;
@@ -571,6 +613,7 @@ public class SpringApplication {
 	 * @see #setApplicationContextFactory(ApplicationContextFactory)
 	 */
 	protected ConfigurableApplicationContext createApplicationContext() {
+		// 根据web应用类型创建不同的ApplicationContext
 		return this.applicationContextFactory.create(this.properties.getWebApplicationType());
 	}
 
@@ -1739,6 +1782,11 @@ public class SpringApplication {
 			return Duration.ofMillis(now - startTime());
 		}
 
+		/**
+		 * 根据是否存在{@link jdk.crac.management.CRaCMXBean}
+		 * 和{@link org.crac.management.CRaCMXBean}来创建{@link Startup}实例
+		 * @return 创建结果
+		 */
 		static Startup create() {
 			ClassLoader classLoader = Startup.class.getClassLoader();
 			return (ClassUtils.isPresent("jdk.crac.management.CRaCMXBean", classLoader)
