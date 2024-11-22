@@ -68,7 +68,10 @@ class SpringApplicationBannerPrinter {
 		banner.printBanner(environment, sourceClass, out);
 		return new PrintedBanner(banner, sourceClass);
 	}
-
+	/**
+	 * 如果没有spring.banner.location与banner.txt
+	 * 去加载 fallbackBanner，如果fallbackBanner也没有，就去用默认的
+	 */
 	private Banner getBanner(Environment environment) {
 		Banner textBanner = getTextBanner(environment);
 		if (textBanner != null) {
@@ -83,8 +86,8 @@ class SpringApplicationBannerPrinter {
 	/**
 	 * 先去读取environment中spring.banner.location指定的位置
 	 * 如果为空则读取resourceLoader下的banner.txt
-	 * @param environment
-	 * @return
+	 * 如果存在banner.txt就去封装返回
+	 * 如果不存在就返回null
 	 */
 	private Banner getTextBanner(Environment environment) {
 		String location = environment.getProperty(BANNER_LOCATION_PROPERTY, DEFAULT_BANNER_LOCATION);

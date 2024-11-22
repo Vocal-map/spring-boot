@@ -21,13 +21,15 @@ import jakarta.servlet.ServletContextListener;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.springframework.boot.ConfigurableBootstrapContext;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.SpringApplicationRunListener;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
 public class SampleTomcatApplication {
-
 	private static final Log logger = LogFactory.getLog(SampleTomcatApplication.class);
 
 	@Bean
@@ -47,8 +49,8 @@ public class SampleTomcatApplication {
 		};
 	}
 
+
 	public static void main(String[] args) {
 		SpringApplication.run(SampleTomcatApplication.class, args);
 	}
-
 }

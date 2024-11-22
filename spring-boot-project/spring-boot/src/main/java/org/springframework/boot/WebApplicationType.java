@@ -31,18 +31,21 @@ import org.springframework.util.ClassUtils;
 public enum WebApplicationType {
 
 	/**
+	 * 非web应用，不启动内嵌web服务器
 	 * The application should not run as a web application and should not start an
 	 * embedded web server.
 	 */
 	NONE,
 
 	/**
+	 * servlet web应用，启动内嵌servlet web服务器
 	 * The application should run as a servlet-based web application and should start an
 	 * embedded servlet web server.
 	 */
 	SERVLET,
 
 	/**
+	 * reactive web应用，启动内嵌reactive web服务器
 	 * The application should run as a reactive web application and should start an
 	 * embedded reactive web server.
 	 */
@@ -62,16 +65,19 @@ public enum WebApplicationType {
 	 * @return 应用类型
 	 */
 	static WebApplicationType deduceFromClasspath() {
+		// 当存在webflux相关类，不存在webmvc和jersey相关类时，返回reactive
 		if (ClassUtils.isPresent(WEBFLUX_INDICATOR_CLASS, null)
 				&& !ClassUtils.isPresent(WEBMVC_INDICATOR_CLASS, null)
 				&& !ClassUtils.isPresent(JERSEY_INDICATOR_CLASS, null)) {
 			return WebApplicationType.REACTIVE;
 		}
+		// 当不存在servlet相关类时，返回非web应用
 		for (String className : SERVLET_INDICATOR_CLASSES) {
 			if (!ClassUtils.isPresent(className, null)) {
 				return WebApplicationType.NONE;
 			}
 		}
+		// 保底返回servlet应用
 		return WebApplicationType.SERVLET;
 	}
 

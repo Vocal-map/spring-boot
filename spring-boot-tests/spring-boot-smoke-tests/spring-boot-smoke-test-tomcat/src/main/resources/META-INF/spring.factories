@@ -1,0 +1,2 @@
+org.springframework.boot.SpringApplicationRunListener=\
+smoketest.tomcat.runListenters.MyListener

@@ -15,6 +15,9 @@ subprojects {
 	apply plugin: "org.springframework.boot.conventions"
 
 	repositories {
+		maven { url 'https://maven.aliyun.com/repository/public/' }
+		maven { url 'https://maven.aliyun.com/repository/spring/'}
+		mavenLocal()
 		mavenCentral()
 		spring.mavenRepositories()
 		if (version.contains('-')) {

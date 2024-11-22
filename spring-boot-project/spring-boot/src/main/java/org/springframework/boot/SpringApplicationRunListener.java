@@ -19,6 +19,7 @@ package org.springframework.boot;
 import java.time.Duration;
 
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.io.support.SpringFactoriesLoader;
@@ -104,5 +105,4 @@ public interface SpringApplicationRunListener {
 	 */
 	default void failed(ConfigurableApplicationContext context, Throwable exception) {
 	}
-
 }

@@ -11,3 +11,4 @@ icon.svg
 # Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
+/gradle/wrapper/gradle-wrapper.properties

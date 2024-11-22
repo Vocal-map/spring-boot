@@ -97,6 +97,12 @@ class ApplicationProperties {
 		this.allowCircularReferences = allowCircularReferences;
 	}
 
+	/**
+	 * 判断是否开启banner
+	 * 如果this.bannerMode不为空，返回this.bannerMode
+	 * 如果开启了structuredLoggingEnabled，返回Mode.OFF
+	 * 否则返回Mode.CONSOLE
+	 */
 	Mode getBannerMode(Environment environment) {
 		if (this.bannerMode != null) {
 			return this.bannerMode;
@@ -147,6 +153,7 @@ class ApplicationProperties {
 	}
 
 	Set<String> getSources() {
+		// TODO sources是什么？
 		return this.sources;
 	}
 

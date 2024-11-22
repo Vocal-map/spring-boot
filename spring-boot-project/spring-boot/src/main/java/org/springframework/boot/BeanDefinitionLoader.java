@@ -158,6 +158,7 @@ class BeanDefinitionLoader {
 			((GroovyBeanDefinitionReader) this.groovyReader).beans(loader.getBeans());
 		}
 		if (isEligible(source)) {
+			// 会解析主类上的注解，并将此类与其解析结果注册到BeanDefinitionRegistry中
 			this.annotatedReader.register(source);
 		}
 	}
