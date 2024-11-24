@@ -430,7 +430,7 @@ public class SpringApplication {
 		// 2. 如果resourceLoader不为null，则将它的加载器设置为resourceLoader或resourceLoader的加载器
 		// 3. 如果addConversionService为true，则配置Object转换服务
 		postProcessApplicationContext(context);
-		// 配置AOT生成的初始化器，默认没必要
+		// 将AOT生成的初始化器添加进初始化器列表，默认没必要
 		addAotGeneratedInitializerIfNecessary(this.initializers);
 		// 应用初始化器，对context进行初始化
 		applyInitializers(context);
@@ -462,16 +462,18 @@ public class SpringApplication {
 			}
 		}
 		// 如果允许lazy初始化，则添加LazyInitializationBeanFactoryPostProcessor
+		// 可使用spring.main.lazy-initialization配置
 		if (this.properties.isLazyInitialization()) {
 			context.addBeanFactoryPostProcessor(new LazyInitializationBeanFactoryPostProcessor());
 		}
 		// 如果允许keepAlive，则添加KeepAlive监听器
+		// 可使用spring.main.keep-alive配置
 		if (this.properties.isKeepAlive()) {
 			context.addApplicationListener(new KeepAlive());
 		}
 		// 添加PropertySourceOrderingBeanFactoryPostProcessor
 		context.addBeanFactoryPostProcessor(new PropertySourceOrderingBeanFactoryPostProcessor(context));
-		// 如果没有开启AOT
+		// 如果没有使用生成的Artifacts
 		if (!AotDetector.useGeneratedArtifacts()) {
 			// Load the sources
 			// 1. 主类一定是source
@@ -479,6 +481,7 @@ public class SpringApplication {
 			// source值springboot开始扫描的起点
 			Set<Object> sources = getAllSources();
 			Assert.notEmpty(sources, "Sources must not be empty");
+			// 将sources集合中的bean添加进applicationContext
 			load(context, sources.toArray(new Object[0]));
 		}
 		// 触发上下文加载完成阶段
@@ -506,7 +509,7 @@ public class SpringApplication {
 	}
 
 	private void refreshContext(ConfigurableApplicationContext context) {
-		// 如果注册了关闭钩子，则注册进context
+		// 如果注册了关闭钩子，则将其注册进context
 		if (this.properties.isRegisterShutdownHook()) {
 			shutdownHook.registerApplicationContext(context);
 		}
@@ -770,7 +773,7 @@ public class SpringApplication {
 	}
 
 	/**
-	 * Load beans into the application context.
+	 * 将beans加载到applicationContext中
 	 * 此时仅将sources加载到context中，还未刷新context
 	 * @param context the context to load beans into
 	 * @param sources the sources to load
@@ -1270,11 +1273,8 @@ public class SpringApplication {
 	}
 
 	/**
-	 * Return an immutable set of all the sources that will be added to an
-	 * ApplicationContext when {@link #run(String...)} is called. This method combines any
-	 * primary sources specified in the constructor with any additional ones that have
-	 * been {@link #setSources(Set) explicitly set}.
-	 * @return an immutable set of all sources
+	 * 返回一个不可变的 source 集合，集合内的source将被添加进applicationContext。集合会将构造函数中
+	 * 指定的任何主source与配置的的其他source组合在一起。
 	 */
 	public Set<Object> getAllSources() {
 		Set<Object> allSources = new LinkedHashSet<>();
