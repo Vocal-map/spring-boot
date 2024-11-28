@@ -18,8 +18,9 @@ package smoketest.tomcat.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+@Service
 public class HelloWorldService {
 
 	@Value("${test.name:World}")

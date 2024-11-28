@@ -200,25 +200,34 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 		if (this.disableMBeanRegistry) {
 			Registry.disableRegistry();
 		}
+		// 创建tomcat类
 		Tomcat tomcat = new Tomcat();
-		File baseDir = (this.baseDirectory != null) ? this.baseDirectory : createTempDir("tomcat");
+		File baseDir = (this.baseDirectory != null) ? this.baseDirectory : createTempDir("tomcat"); // 临时目录
 		tomcat.setBaseDir(baseDir.getAbsolutePath());
+		// 为服务器配置生命周期监听器
 		for (LifecycleListener listener : this.serverLifecycleListeners) {
 			tomcat.getServer().addLifecycleListener(listener);
 		}
+		// 为tomcat配置连接器，默认http11Nio
 		Connector connector = new Connector(this.protocol);
 		connector.setThrowOnFailure(true);
 		tomcat.getService().addConnector(connector);
+		// 自定义连接器
 		customizeConnector(connector);
 		tomcat.setConnector(connector);
+		// 注册连接器对应的执行器
 		registerConnectorExecutor(tomcat, connector);
 		tomcat.getHost().setAutoDeploy(false);
+		// 配置引擎
 		configureEngine(tomcat.getEngine());
+		// 如果有额外的连接器
 		for (Connector additionalConnector : this.additionalTomcatConnectors) {
 			tomcat.getService().addConnector(additionalConnector);
 			registerConnectorExecutor(tomcat, additionalConnector);
 		}
+		// 配置上下文，通过initializers处理tomcat的context
 		prepareContext(tomcat.getHost(), initializers);
+		// 创建服务器，主要是封装tomcat
 		return getTomcatWebServer(tomcat);
 	}
 
@@ -236,21 +245,25 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 	}
 
 	protected void prepareContext(Host host, ServletContextInitializer[] initializers) {
+		// 返回doc_root的根路径
 		File documentRoot = getValidDocumentRoot();
 		TomcatEmbeddedContext context = new TomcatEmbeddedContext();
 		if (documentRoot != null) {
 			context.setResources(new LoaderHidingResourceRoot(context));
 		}
-		context.setName(getContextPath());
-		context.setDisplayName(getDisplayName());
-		context.setPath(getContextPath());
+		context.setName(getContextPath());  // ""
+		context.setDisplayName(getDisplayName());  // application
+		context.setPath(getContextPath()); // ""
 		File docBase = (documentRoot != null) ? documentRoot : createTempDir("tomcat-docbase");
 		context.setDocBase(docBase.getAbsolutePath());
+		// 添加生命周期监听器
 		context.addLifecycleListener(new FixContextListener());
 		ClassLoader parentClassLoader = (this.resourceLoader != null) ? this.resourceLoader.getClassLoader()
 				: ClassUtils.getDefaultClassLoader();
 		context.setParentClassLoader(parentClassLoader);
+		// 默认的地域与字符集映射；例：JAPANESE -> UTF-8
 		resetDefaultLocaleMapping(context);
+		// 添加本地的一些映射关系
 		addLocaleMappings(context);
 		try {
 			context.setCreateUploadTargets(true);
@@ -259,13 +272,16 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 			// Tomcat is < 8.5.39. Continue.
 		}
 		configureTldPatterns(context);
+		// webapploader
 		WebappLoader loader = new WebappLoader();
 		loader.setLoaderInstance(new TomcatEmbeddedWebappClassLoader(parentClassLoader));
 		loader.setDelegate(true);
 		context.setLoader(loader);
+		// 如果有默认servlet，则添加
 		if (isRegisterDefaultServlet()) {
 			addDefaultServlet(context);
 		}
+		// 如果有jsp，则添加
 		if (shouldRegisterJspServlet()) {
 			addJspServlet(context);
 			addJasperInitializer(context);
@@ -273,11 +289,14 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 		context.addLifecycleListener(new StaticResourceConfigurer(context));
 		ServletContextInitializer[] initializersToUse = mergeInitializers(initializers);
 		host.addChild(context);
+		// 配置tomcat的上下文，主要是配置初始化器
 		configureContext(context, initializersToUse);
+		// 后处理, 空的
 		postProcessContext(context);
 	}
 
 	/**
+	 * 配置地区语言与字符集
 	 * Override Tomcat's default locale mappings to align with other servers. See
 	 * {@code org.apache.catalina.util.CharsetMapperDefault.properties}.
 	 * @param context the context to reset
@@ -346,18 +365,24 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 			connector.setProperty("server", getServerHeader());
 		}
 		if (connector.getProtocolHandler() instanceof AbstractProtocol<?> abstractProtocol) {
+			// 自定义协议，如果存在配置
 			customizeProtocol(abstractProtocol);
 		}
 		invokeProtocolHandlerCustomizers(connector.getProtocolHandler());
+		// 配置 UriEncoding（默认UTF-8）
 		if (getUriEncoding() != null) {
 			connector.setURIEncoding(getUriEncoding().name());
 		}
+		// 配置Http2信息（默认：false）
 		if (getHttp2() != null && getHttp2().isEnabled()) {
+			// 支持H2C
 			connector.addUpgradeProtocol(new Http2Protocol());
 		}
+		// HTTPS（默认：false）
 		if (Ssl.isEnabled(getSsl())) {
 			customizeSsl(connector);
 		}
+		// 配置Compression相关信息
 		TomcatConnectorCustomizer compression = new CompressionConnectorCustomizer(getCompression());
 		compression.customize(connector);
 		for (TomcatConnectorCustomizer customizer : this.tomcatConnectorCustomizers) {
@@ -395,16 +420,19 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 	}
 
 	/**
+	 * 配置tomcat的context
 	 * Configure the Tomcat {@link Context}.
 	 * @param context the Tomcat context
 	 * @param initializers initializers to apply
 	 */
 	protected void configureContext(Context context, ServletContextInitializer[] initializers) {
+		// 封装 initializers 作为 启动器
 		TomcatStarter starter = new TomcatStarter(initializers);
 		if (context instanceof TomcatEmbeddedContext embeddedContext) {
 			embeddedContext.setStarter(starter);
 			embeddedContext.setFailCtxIfServletStartFails(true);
 		}
+		// 添加初始化器，tomcat启动时触发
 		context.addServletContainerInitializer(starter, NO_CLASSES);
 		for (LifecycleListener lifecycleListener : this.contextLifecycleListeners) {
 			context.addLifecycleListener(lifecycleListener);
@@ -414,8 +442,8 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 		}
 		for (ErrorPage errorPage : getErrorPages()) {
 			org.apache.tomcat.util.descriptor.web.ErrorPage tomcatErrorPage = new org.apache.tomcat.util.descriptor.web.ErrorPage();
-			tomcatErrorPage.setLocation(errorPage.getPath());
-			tomcatErrorPage.setErrorCode(errorPage.getStatusCode());
+			tomcatErrorPage.setLocation(errorPage.getPath());  // error
+			tomcatErrorPage.setErrorCode(errorPage.getStatusCode()); // 0
 			tomcatErrorPage.setExceptionType(errorPage.getExceptionName());
 			context.addErrorPage(tomcatErrorPage);
 		}
@@ -431,6 +459,10 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 		}
 	}
 
+	/**
+	 * 填写doc
+	 * @param context
+	 */
 	private void configureSession(Context context) {
 		long sessionTimeout = getSessionTimeoutInMinutes();
 		context.setSessionTimeout((int) sessionTimeout);
@@ -505,7 +537,7 @@ public class TomcatServletWebServerFactory extends AbstractServletWebServerFacto
 	protected void postProcessContext(Context context) {
 	}
 
-	/**
+	/** 调用工厂方法创建tomcat
 	 * Factory method called to create the {@link TomcatWebServer}. Subclasses can
 	 * override this method to return a different {@link TomcatWebServer} or apply
 	 * additional processing to the Tomcat server.

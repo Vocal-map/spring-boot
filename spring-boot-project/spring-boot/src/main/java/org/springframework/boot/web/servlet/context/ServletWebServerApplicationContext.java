@@ -179,19 +179,28 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	}
 
 	private void createWebServer() {
+		// 获取当前是否存在webServer
 		WebServer webServer = this.webServer;
 		ServletContext servletContext = getServletContext();
+		// 什么都不存在
 		if (webServer == null && servletContext == null) {
+			// 服务器开始创建
 			StartupStep createWebServer = getApplicationStartup().start("spring.boot.webserver.create");
+			// 获得 WebServer 的创建工厂
 			ServletWebServerFactory factory = getWebServerFactory();
+			// 记录创建过程使用的工厂
 			createWebServer.tag("factory", factory.getClass().toString());
+			// 创建 webServer
 			this.webServer = factory.getWebServer(getSelfInitializer());
+			// 服务器创建结束
 			createWebServer.end();
+			// 将webServer的关闭类注册进去
 			getBeanFactory().registerSingleton("webServerGracefulShutdown",
 					new WebServerGracefulShutdownLifecycle(this.webServer));
 			getBeanFactory().registerSingleton("webServerStartStop",
 					new WebServerStartStopLifecycle(this, this.webServer));
 		}
+		// 存在服务器，但不存在 servletContext
 		else if (servletContext != null) {
 			try {
 				getSelfInitializer().onStartup(servletContext);
@@ -200,26 +209,30 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 				throw new ApplicationContextException("Cannot initialize servlet context", ex);
 			}
 		}
+		// 使用servletContext初始化属性源
 		initPropertySources();
 	}
 
 	/**
-	 * Returns the {@link ServletWebServerFactory} that should be used to create the
-	 * embedded {@link WebServer}. By default this method searches for a suitable bean in
-	 * the context itself.
-	 * @return a {@link ServletWebServerFactory} (never {@code null})
+	 * 返回一个ServletWebServerFactory，该类用于创建一个嵌入式WebServer。默认情况下，该方法会
+	 * 在context搜索一个合适的bean
+	 * 返回：一个webserver工厂，不会为null
 	 */
 	protected ServletWebServerFactory getWebServerFactory() {
 		// Use bean names so that we don't consider the hierarchy
+		// 从 applicationContext 中获得 ServletWebServerFactory 类的名字
 		String[] beanNames = getBeanFactory().getBeanNamesForType(ServletWebServerFactory.class);
 		if (beanNames.length == 0) {
+			// 异常：找不到要使用的服务器，
 			throw new MissingWebServerFactoryBeanException(getClass(), ServletWebServerFactory.class,
 					WebApplicationType.SERVLET);
 		}
 		if (beanNames.length > 1) {
+			// 异常：存在多种选择
 			throw new ApplicationContextException("Unable to start ServletWebServerApplicationContext due to multiple "
 					+ "ServletWebServerFactory beans : " + StringUtils.arrayToCommaDelimitedString(beanNames));
 		}
+		// 获得找到的类实例化
 		return getBeanFactory().getBean(beanNames[0], ServletWebServerFactory.class);
 	}
 
@@ -236,12 +249,12 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	private void selfInitialize(ServletContext servletContext) throws ServletException {
 		prepareWebApplicationContext(servletContext);
 		registerApplicationScope(servletContext);
-		WebApplicationContextUtils.registerEnvironmentBeans(getBeanFactory(), servletContext);
+		WebApplicationContextUtils.registerEnvironmentBeans(getBeanFactory(), servletContext);  // tomcat context 写入 beanFactory
 		for (ServletContextInitializer beans : getServletContextInitializerBeans()) {
 			beans.onStartup(servletContext);
 		}
 	}
-
+	// 注册ApplicationScope
 	private void registerApplicationScope(ServletContext servletContext) {
 		ServletContextScope appScope = new ServletContextScope(servletContext);
 		getBeanFactory().registerScope(WebApplicationContext.SCOPE_APPLICATION, appScope);
@@ -282,7 +295,7 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 								+ "check whether you have multiple ServletContextInitializers!");
 			}
 			return;
-		}
+		} // 初始化Spring 嵌入式 context
 		servletContext.log("Initializing Spring embedded WebApplicationContext");
 		try {
 			servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, this);
@@ -291,7 +304,7 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 						+ WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE + "]");
 			}
 			setServletContext(servletContext);
-			if (logger.isInfoEnabled()) {
+			if (logger.isInfoEnabled()) {  // Root WebApplicationContext: initialization completed
 				long elapsedTime = System.currentTimeMillis() - getStartupDate();
 				logger.info("Root WebApplicationContext: initialization completed in " + elapsedTime + " ms");
 			}

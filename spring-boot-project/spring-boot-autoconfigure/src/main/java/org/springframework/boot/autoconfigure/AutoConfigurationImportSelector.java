@@ -141,12 +141,12 @@ public class AutoConfigurationImportSelector implements DeferredImportSelector, 
 		}
 		AnnotationAttributes attributes = getAttributes(annotationMetadata);
 		List<String> configurations = getCandidateConfigurations(annotationMetadata, attributes);
-		configurations = removeDuplicates(configurations);
+		configurations = removeDuplicates(configurations); // 去重
 		Set<String> exclusions = getExclusions(annotationMetadata, attributes);
 		checkExcludedClasses(configurations, exclusions);
 		configurations.removeAll(exclusions);
 		configurations = getConfigurationClassFilter().filter(configurations);
-		fireAutoConfigurationImportEvents(configurations, exclusions);
+		fireAutoConfigurationImportEvents(configurations, exclusions); // 触发事件
 		return new AutoConfigurationEntry(configurations, exclusions);
 	}
 
@@ -186,6 +186,7 @@ public class AutoConfigurationImportSelector implements DeferredImportSelector, 
 	}
 
 	/**
+	 * 返回候选的自动配置类，从/meta-inf/spring/*.imports
 	 * Return the auto-configuration class names that should be considered. By default,
 	 * this method will load candidates using {@link ImportCandidates}.
 	 * @param metadata the source metadata

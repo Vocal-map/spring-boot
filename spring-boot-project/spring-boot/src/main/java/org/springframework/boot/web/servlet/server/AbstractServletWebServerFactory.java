@@ -266,7 +266,7 @@ public abstract class AbstractServletWebServerFactory extends AbstractConfigurab
 		return this.cookieSameSiteSuppliers;
 	}
 
-	/**
+	/** 将initializers进行合并
 	 * Utility method that can be used by subclasses wishing to combine the specified
 	 * {@link ServletContextInitializer} parameters with those defined in this instance.
 	 * @param initializers the initializers to merge
@@ -292,6 +292,7 @@ public abstract class AbstractServletWebServerFactory extends AbstractConfigurab
 	}
 
 	/**
+	 * 当路径有效时，返回doc_root的绝对路径；否则返回null
 	 * Returns the absolute document root when it points to a valid directory, logging a
 	 * warning and returning {@code null} otherwise.
 	 * @return the valid document root

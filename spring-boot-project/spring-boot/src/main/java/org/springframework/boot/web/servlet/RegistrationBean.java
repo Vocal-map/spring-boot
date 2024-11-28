@@ -41,7 +41,7 @@ public abstract class RegistrationBean implements ServletContextInitializer, Ord
 	private int order = Ordered.LOWEST_PRECEDENCE;
 
 	private boolean enabled = true;
-
+	// 入参是tomcat的context
 	@Override
 	public final void onStartup(ServletContext servletContext) throws ServletException {
 		String description = getDescription();

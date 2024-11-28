@@ -112,7 +112,7 @@ public class ServletListenerRegistrationBean<T extends EventListener> extends Re
 		Assert.notNull(this.listener, "Listener must not be null");
 		return "listener " + this.listener;
 	}
-
+	// 把被cglib包装好的主类添加到tomcat的监听器，让传入的servletContext添加监听器
 	@Override
 	protected void register(String description, ServletContext servletContext) {
 		try {

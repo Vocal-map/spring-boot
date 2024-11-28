@@ -111,6 +111,7 @@ public class TomcatWebServer implements WebServer {
 		logger.info("Tomcat initialized with " + getPortsDescription(false));
 		synchronized (this.monitor) {
 			try {
+				// 设置实例化id
 				addInstanceIdToEngineName();
 
 				Context context = findContext();
@@ -121,11 +122,11 @@ public class TomcatWebServer implements WebServer {
 						removeServiceConnectors();
 					}
 				});
-
+				// 关闭绑定
 				disableBindOnInit();
 
 				// Start the server to trigger initialization listeners
-				this.tomcat.start();
+				this.tomcat.start(); // 启动服务器，进入apache.tomcat包执行
 
 				// We can re-throw failure exception directly in the main thread
 				rethrowDeferredStartupExceptions();
@@ -139,6 +140,7 @@ public class TomcatWebServer implements WebServer {
 
 				// Unlike Jetty, all Tomcat threads are daemon threads. We create a
 				// blocking non-daemon to stop immediate shutdown
+				// 创建阻塞非守护线程防止程序关闭
 				startNonDaemonAwaitThread();
 			}
 			catch (Exception ex) {
