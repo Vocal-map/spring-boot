@@ -24,6 +24,8 @@ import org.springframework.boot.ansi.AnsiStyle;
 import org.springframework.core.env.Environment;
 
 /**
+ * 默认的 Banner 实现
+ * 用于绘制 “spring” 的字符banner
  * Default Banner implementation which writes the 'Spring' banner.
  *
  * @author Phillip Webb
